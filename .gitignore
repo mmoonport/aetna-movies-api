@@ -1,2 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# env files (keep .env.example)
+.env
+.env.local
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
 .DS_Store
-.claude/settings.local.json
+
+# IDE
+.idea/
+.vscode/

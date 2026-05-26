@@ -15,6 +15,10 @@ npm-debug.log*
 # OS
 .DS_Store
 
+# generated artifacts (regenerate with: npm run generate:client)
+openapi.json
+client/
+
 # IDE
 .idea/
 .vscode/

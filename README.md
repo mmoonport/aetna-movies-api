@@ -1,67 +1,161 @@
-# Movie API Code Test
+# Movies API
 
-## Pre-requisites
+A RESTful API built with [NestJS](https://nestjs.com/) + [Fastify](https://fastify.dev/) backed by two SQLite databases — `movies.db` and `ratings.db`.
 
-* An IDE or text editor of your choice
-* [Sqlite3](http://www.sqlitetutorial.net/)
+---
 
+## Prerequisites
 
-## Task
-Your task is to create an API on top of a couple different databases.  It should conform to the user stories provided below.  You are free to use whatever language you prefer, however our tech stack features NodeJS, Java and Ruby. If you're comfortable with any of these, try to favor them.  Google and the interwebs are at your disposal.
+- **Node.js** 22+
+- **Java** 17+ (only required for `npm run generate:client`)
+- **Docker** (optional, for containerised deployment)
 
-**The Databases**
-The databases are provided as a SQLite3 database in `db/`.  It does not require any credentials to login.  You can run SQL queries directly against the database using:
+---
+
+## Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Copy environment config
+cp .env.example .env
+```
+
+The defaults in `.env` point to `./db/movies.db` and `./db/ratings.db` which are already included in the repo.
+
+---
+
+## Running the app
+
+```bash
+# Development (watch mode)
+npm run start:dev
+
+# Production build + start
+npm run build
+npm run start:prod
+```
+
+The server starts on `http://localhost:3000` (configurable via `PORT` in `.env`).
+
+Interactive Swagger docs are available at **`http://localhost:3000/api`**.
+
+---
+
+## Docker
+
+```bash
+# Build the image
+docker build -t movies-api .
+
+# Run the container
+docker run -p 3000:3000 movies-api
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/movies` | List all movies (paginated) |
+| `GET` | `/movies/:id` | Movie detail including average rating |
+| `GET` | `/movies/year/:year` | Movies by release year |
+| `GET` | `/movies/genre/:genreId` | Movies by genre ID |
+
+### Common query parameters
+
+| Parameter | Endpoints | Description |
+|-----------|-----------|-------------|
+| `page` | all list endpoints | Page number (default: `1`, 50 results per page) |
+| `order` | `/movies/year/:year` | Sort order — `asc` (default) or `desc` |
+
+### Example requests
+
+```bash
+# Page 2 of all movies
+curl "http://localhost:3000/movies?page=2"
+
+# Details for movie ID 2
+curl "http://localhost:3000/movies/2"
+
+# 1994 releases, newest first
+curl "http://localhost:3000/movies/year/1994?order=desc"
+
+# Action movies (genre ID 28)
+curl "http://localhost:3000/movies/genre/28"
+```
+
+---
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | HTTP port |
+| `MOVIES_DB_PATH` | `./db/movies.db` | Path to the movies SQLite database |
+| `RATINGS_DB_PATH` | `./db/ratings.db` | Path to the ratings SQLite database |
+
+---
+
+## Tests
+
+```bash
+# Run all unit tests
+npm test
+
+# With coverage
+npm run test:cov
+```
+
+---
+
+## OpenAPI & generated client
+
+```bash
+# Write openapi.json to the project root
+npm run generate:openapi
+
+# Generate a TypeScript fetch client into ./client (requires Java)
+npm run generate:client
+```
+
+The generated client uses typed request objects:
+
+```ts
+import { MoviesApi, Configuration } from './client';
+
+const api = new MoviesApi(new Configuration({ basePath: 'http://localhost:3000' }));
+
+await api.listAll({ page: 1 });
+await api.findOne({ id: 2 });
+await api.listByYear({ year: 1994, order: 'desc' });
+await api.listByGenre({ genreId: 28 });
+```
+
+---
+
+## Project structure
 
 ```
-sqlite <path to db file>
+src/
+├── config/               # Environment configuration
+├── database/
+│   ├── schemas/          # Zod schemas for DB rows (movies, ratings)
+│   └── database.module.ts
+├── movies/
+│   ├── dto/              # Zod request + response DTOs
+│   ├── movies.controller.ts
+│   ├── movies.service.ts
+│   └── movies.module.ts
+├── scripts/
+│   └── generate-openapi.ts   # OpenAPI doc generator script
+├── utils/
+│   └── numbers.ts        # intToCurrencyString helper
+├── swagger.config.ts
+└── main.ts
+db/
+├── movies.db
+└── ratings.db
 ```
-
-`.tables` will return a list of available tables and `.schema <table>` will provide the schema.
-
-## Considerations
-When developing your solution, please consider the following:
-
-* Structure of your endpoints - Can you easily extend the API to support new endpoints as feature requests come in?
-* Quality of your code - Does your code demonstrate the use of design patterns?
-* Testability - Is your code testable?
-* Can your solution be easily configured and deployed?  Consider guidelines from [12 Factor App](http://12factor.net/)
-
-
-## User Stories
-
-#### List All Movies
-AC:
-
-* An endpoint exists that lists all movies
-* List is paginated: 50 movies per page, the page can be altered with the `page` query params
-* Columns should include: imdb id, title, genres, release date, budget
-* Budget is displayed in dollars
-
-#### Movie Details
-AC:
-
-* An endpoint exists that lists the movie details for a particular movie
-* Details should include: imdb id, title, description, release date, budget, runtime, average rating, genres, original language, production companies
-* Budget should be displayed in dollars
-* Ratings are pulled from the rating database
-
-#### Movies By Year
-AC:
-
-* An endpoint exists that will list all movies from a particular year 
-* List is paginated: 50 movies per page, the page can be altered with the `page` query params
-* List is sorted by date in chronological order
-* Sort order can be descending
-* Columns include: imdb id, title, genres, release date, budget
-
-#### Movies By Genre
-AC:
-
-* An endpoint exists that will list all movies by a genre
-* List is paginated: 50 movies per page, the page can be altered with the `page` query params
-* Columns include: imdb id, title, genres, release date, budget
-
-## Tips
-
-* This is a test of your abilities and not how fast you can crank through random stories.  As such, it is more important to produce well structured code that meets the criteria in the user stories rather than getting all stories done.
-* If you get stuck, please ask someone.  We want to know how you work both as an individual and as part of a team.  You will not lose points for asking for help on something that is unclear or where you are stuck.

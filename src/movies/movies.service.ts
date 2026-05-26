@@ -9,7 +9,8 @@ import {
 } from '../database/schemas/movie.schema.js';
 import type { Genre, MovieCount, MovieRow, ProductionCompany } from '../database/schemas/movie.schema.js';
 import { intToCurrencyString } from '../utils/numbers.js';
-import { AverageRating } from 'src/database/schemas/rating.schema.js';
+import { AverageRatingSchema } from '../database/schemas/rating.schema.js';
+import type { AverageRating } from '../database/schemas/rating.schema.js';
 
 export type { Genre, ProductionCompany };
 
@@ -116,9 +117,11 @@ export class MoviesService {
 
     const row = MovieRowSchema.parse(raw);
 
-    const { avg: averageRating } = this.ratingsDb
-      .prepare('SELECT AVG(rating) as avg FROM ratings WHERE movieId = ?')
-      .get(movieId) as AverageRating;
+    const { avg: averageRating } = AverageRatingSchema.parse(
+      this.ratingsDb
+        .prepare('SELECT AVG(rating) as avg FROM ratings WHERE movieId = ?')
+        .get(movieId),
+    );
 
     return {
       movieId: row.movieId,

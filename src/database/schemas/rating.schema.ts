@@ -1,4 +1,4 @@
-import { number, z } from 'zod';
+import { z } from 'zod';
 
 /** Raw row as returned by better-sqlite3 */
 export const RatingRowSchema = z.object({

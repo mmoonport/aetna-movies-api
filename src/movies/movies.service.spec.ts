@@ -115,3 +115,53 @@ describe('MoviesService.listAll', () => {
     expect(limitStmt.all).toHaveBeenCalledWith(50, 50);
   });
 });
+
+// ---------------------------------------------------------------------------
+// findOne
+// ---------------------------------------------------------------------------
+describe('MoviesService.findOne', () => {
+  function buildService(movieRow: unknown, avgRating: number | null) {
+    const moviesDb = makeMockDb({
+      'WHERE movieId': makeStmt(movieRow),
+    });
+    const ratingsDb = makeMockDb({
+      'AVG(rating)': makeStmt({ avg: avgRating }),
+    });
+    return new MoviesService(
+      moviesDb as unknown as import('better-sqlite3').Database,
+      ratingsDb as unknown as import('better-sqlite3').Database,
+    );
+  }
+
+  it('returns full movie detail with parsed fields', () => {
+    const result = buildService(MOVIE_ROW, 3.75).findOne(1);
+
+    expect(result.imdbId).toBe('tt0000001');
+    expect(result.title).toBe('Test Movie');
+    expect(result.description).toBe('A test film.');
+    expect(result.runtime).toBe(120);
+    expect(result.language).toBe('en');
+    expect(result.genres).toEqual([{ id: 28, name: 'Action' }]);
+    expect(result.productionCompanies).toEqual([{ id: 1, name: 'Test Studio' }]);
+  });
+
+  it('formats budget as a USD currency string', () => {
+    const result = buildService(MOVIE_ROW, null).findOne(1);
+    expect(result.budget).toBe('$1,000,000');
+  });
+
+  it('includes averageRating from the ratings database', () => {
+    const result = buildService(MOVIE_ROW, 3.75).findOne(1);
+    expect(result.averageRating).toBe(3.75);
+  });
+
+  it('returns null averageRating when no ratings exist', () => {
+    const result = buildService(MOVIE_ROW, null).findOne(1);
+    expect(result.averageRating).toBeNull();
+  });
+
+  it('throws NotFoundException when movie does not exist', () => {
+    const service = buildService(undefined, null);
+    expect(() => service.findOne(999)).toThrow(NotFoundException);
+  });
+});

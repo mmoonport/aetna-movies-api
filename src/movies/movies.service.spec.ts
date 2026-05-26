@@ -165,3 +165,73 @@ describe('MoviesService.findOne', () => {
     expect(() => service.findOne(999)).toThrow(NotFoundException);
   });
 });
+
+// ---------------------------------------------------------------------------
+// listByYear
+// ---------------------------------------------------------------------------
+describe('MoviesService.listByYear', () => {
+  function buildService(rows: unknown[], count: number) {
+    const countStmt = makeStmt({ count });
+    const rowsStmt = makeStmt(rows);
+    const moviesDb = makeMockDb({
+      'COUNT(*)': countStmt,
+      'LIMIT': rowsStmt,
+    });
+    return {
+      service: new MoviesService(
+        moviesDb as unknown as import('better-sqlite3').Database,
+        {} as unknown as import('better-sqlite3').Database,
+      ),
+      rowsStmt,
+    };
+  }
+
+  it('returns paginated results for a given year', () => {
+    const { service } = buildService([MOVIE_ROW], 1);
+    const result = service.listByYear(2000, 1, 'asc');
+
+    expect(result.meta.totalItems).toBe(1);
+    expect(result.data[0].title).toBe('Test Movie');
+  });
+
+  it('passes year as string to strftime query', () => {
+    const countStmt = makeStmt({ count: 0 });
+    const rowsStmt = makeStmt([]);
+    const moviesDb = makeMockDb({
+      'COUNT(*)': countStmt,
+      'LIMIT': rowsStmt,
+    });
+    const svc = new MoviesService(
+      moviesDb as unknown as import('better-sqlite3').Database,
+      {} as unknown as import('better-sqlite3').Database,
+    );
+    svc.listByYear(1999, 1, 'asc');
+    expect(countStmt.get).toHaveBeenCalledWith('1999');
+  });
+
+  it('passes DESC direction for order=desc', () => {
+    const countStmt = makeStmt({ count: 0 });
+    const rowsStmt = makeStmt([]);
+    const moviesDb = {
+      prepare: jest.fn((sql: string) => {
+        if (sql.includes('COUNT(*)')) return countStmt;
+        if (sql.includes('DESC')) return rowsStmt;
+        throw new Error(`Unexpected SQL: ${sql}`);
+      }),
+    };
+    const svc = new MoviesService(
+      moviesDb as unknown as import('better-sqlite3').Database,
+      {} as unknown as import('better-sqlite3').Database,
+    );
+    expect(() => svc.listByYear(2000, 1, 'desc')).not.toThrow();
+  });
+
+  it('returns empty data when no movies match the year', () => {
+    const { service } = buildService([], 0);
+    const result = service.listByYear(1800, 1, 'asc');
+
+    expect(result.data).toHaveLength(0);
+    expect(result.meta.totalItems).toBe(0);
+    expect(result.meta.totalPages).toBe(0);
+  });
+});

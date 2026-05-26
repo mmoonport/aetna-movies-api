@@ -31,6 +31,18 @@ export class MoviesController {
     return this.moviesService.listByYear(year, query.page, query.order);
   }
 
+  @Get('genre/:genreId')
+  @ApiOperation({ summary: 'List movies by genre ID (paginated, 50 per page)' })
+  @ApiParam({ name: 'genreId', type: Number, description: 'Genre ID, e.g. 28 (Action), 18 (Drama), 35 (Comedy)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiResponse({ status: 200, type: PaginatedMovieListDto, description: 'Paginated movies for the given genre' })
+  listByGenre(
+    @Param('genreId', ParseIntPipe) genreId: number,
+    @Query() query: ListQueryDto,
+  ): PaginatedMovieListDto {
+    return this.moviesService.listByGenre(genreId, query.page);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get full details for a single movie' })
   @ApiParam({ name: 'id', type: Number, description: 'movieId' })

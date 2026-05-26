@@ -176,7 +176,7 @@ export class MoviesService {
     };
   }
 
-  listByGenre(genre: string, page: number): PaginatedResult<MovieListItem> {
+  listByGenre(genreId: number, page: number): PaginatedResult<MovieListItem> {
     const offset = (page - 1) * PAGE_SIZE;
 
     const { count: totalItems } = this.moviesDb
@@ -184,10 +184,10 @@ export class MoviesService {
         `SELECT COUNT(*) as count FROM movies
          WHERE EXISTS (
            SELECT 1 FROM json_each(genres)
-           WHERE json_extract(value, '$.name') = ?
+           WHERE json_extract(value, '$.id') = ?
          )`,
       )
-      .get(genre) as MovieCount;
+      .get(genreId) as MovieCount;
 
     const rows = this.moviesDb
       .prepare(
@@ -195,11 +195,11 @@ export class MoviesService {
          FROM movies
          WHERE EXISTS (
            SELECT 1 FROM json_each(genres)
-           WHERE json_extract(value, '$.name') = ?
+           WHERE json_extract(value, '$.id') = ?
          )
          LIMIT ? OFFSET ?`,
       )
-      .all(genre, PAGE_SIZE, offset) as MovieRow[];
+      .all(genreId, PAGE_SIZE, offset) as MovieRow[];
 
     return {
       data: rows.map(toListItem),

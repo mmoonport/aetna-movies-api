@@ -235,3 +235,57 @@ describe('MoviesService.listByYear', () => {
     expect(result.meta.totalPages).toBe(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// listByGenre
+// ---------------------------------------------------------------------------
+describe('MoviesService.listByGenre', () => {
+  function buildService(rows: unknown[], count: number) {
+    const countStmt = makeStmt({ count });
+    const rowsStmt = makeStmt(rows);
+    const moviesDb = makeMockDb({
+      'COUNT(*)': countStmt,
+      'LIMIT': rowsStmt,
+    });
+    return {
+      service: new MoviesService(
+        moviesDb as unknown as import('better-sqlite3').Database,
+        {} as unknown as import('better-sqlite3').Database,
+      ),
+      countStmt,
+      rowsStmt,
+    };
+  }
+
+  it('returns paginated results for a given genre ID', () => {
+    const { service } = buildService([MOVIE_ROW], 1);
+    const result = service.listByGenre(28, 1);
+
+    expect(result.meta.totalItems).toBe(1);
+    expect(result.data[0].title).toBe('Test Movie');
+  });
+
+  it('passes the genre ID to both count and rows queries', () => {
+    const { service, countStmt, rowsStmt } = buildService([MOVIE_ROW], 1);
+    service.listByGenre(18, 1);
+
+    expect(countStmt.get).toHaveBeenCalledWith(18);
+    expect(rowsStmt.all).toHaveBeenCalledWith(18, 50, 0);
+  });
+
+  it('returns empty data when no movies match the genre ID', () => {
+    const { service } = buildService([], 0);
+    const result = service.listByGenre(9999, 1);
+
+    expect(result.data).toHaveLength(0);
+    expect(result.meta.totalItems).toBe(0);
+    expect(result.meta.totalPages).toBe(0);
+  });
+
+  it('calculates correct offset for page 2', () => {
+    const { service, rowsStmt } = buildService([], 100);
+    service.listByGenre(28, 2);
+
+    expect(rowsStmt.all).toHaveBeenCalledWith(28, 50, 50);
+  });
+});

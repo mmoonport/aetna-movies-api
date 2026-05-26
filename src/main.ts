@@ -4,17 +4,13 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: true }),
-  );
-
-  app.useGlobalPipes(
-    new ValidationPipe({ transform: true, whitelist: true }),
   );
 
   const config = new DocumentBuilder()
@@ -23,7 +19,8 @@ async function bootstrap() {
     .setVersion('1.0')
     .build();
 
-  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, cleanupOpenApiDoc(document));
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');

@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from './database/database.module';
-import configuration from './config/configuration';
+import { ZodValidationPipe } from 'nestjs-zod';
+import { DatabaseModule } from './database/database.module.js';
+import { MoviesModule } from './movies/movies.module.js';
+import configuration from './config/configuration.js';
 
 @Module({
   imports: [
@@ -10,6 +13,13 @@ import configuration from './config/configuration';
       isGlobal: true,
     }),
     DatabaseModule,
+    MoviesModule,
+  ],
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe,
+    },
   ],
 })
 export class AppModule {}
